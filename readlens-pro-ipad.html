@@ -101,6 +101,13 @@ textarea{width:100%;height:200px;font:inherit;background:var(--bg);color:var(--i
 .sub-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .kbd{font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--mute)}
 
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer;touch-action:manipulation}
+.sw.sel{outline:3px solid var(--acc);outline-offset:2px}
+#penBar{display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 14px;background:var(--panel);border-bottom:1px solid var(--line);font-size:13px;z-index:24;flex-shrink:0}
+#penBar.show{display:flex}
+.ink{position:absolute;left:0;top:0;z-index:5;pointer-events:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.pen .ink{pointer-events:auto;cursor:crosshair}
+.pen.finger .ink{touch-action:none}
 /* iPad Portrait / Split View & Mobile Responsive */
 @media (max-width:900px){
   main{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58fr) minmax(0,42fr)}
@@ -119,6 +126,7 @@ textarea{width:100%;height:200px;font:inherit;background:var(--bg);color:var(--i
   <button class="btn" id="pasteBtn">วางข้อความ</button>
   <button class="btn" id="cropTrBtn" aria-pressed="false" title="คีย์ลัด C : ลากกรอบอ่าน OCR และแปลฟรีทันที">ครอปแปลไว (OCR) <span class="kbd">C</span></button>
   <button class="btn" id="cropBtn" aria-pressed="false" title="คีย์ลัด V : ลากกรอบให้ Gemini เฉลยโจทย์">ครอปโจทย์ (AI) <span class="kbd">V</span></button>
+  <button class="btn" id="penBtn" aria-pressed="false" title="คีย์ลัด P : เขียน/ไฮไลต์บนเอกสารด้วย Apple Pencil">✏️ ปากกา <span class="kbd">P</span></button>
   <button class="btn" id="vocabTabBtn" title="ดูรายการคำศัพท์ที่บันทึกไว้และส่งออก CSV">คลังศัพท์ <span class="badge-cnt" id="vCnt">0</span></button>
   <button class="btn" id="setBtn">ตั้งค่า</button>
 </header>
@@ -143,6 +151,36 @@ textarea{width:100%;height:200px;font:inherit;background:var(--bg);color:var(--i
     <button class="btn sm" id="rotBtn" title="หมุนหน้ากระดาษ 90 องศา">↻ หมุน 90°</button>
   </div>
   <span id="bmNote" class="hint" style="margin-left:auto;font-size:12px"></span>
+</div>
+
+<div id="penBar" aria-label="เครื่องมือปากกา">
+  <div class="nav-grp">
+    <button class="btn sm on" data-pt="pen">✏️ ปากกา</button>
+    <button class="btn sm" data-pt="hl">🖍 ไฮไลต์</button>
+    <button class="btn sm" data-pt="eraser">⌫ ลบเส้น</button>
+  </div>
+  <span class="sep"></span>
+  <div class="nav-grp">
+    <button class="sw" data-pc="#E53935" style="background:#E53935" aria-label="แดง"></button>
+    <button class="sw" data-pc="#1E66F5" style="background:#1E66F5" aria-label="น้ำเงิน"></button>
+    <button class="sw" data-pc="#2E9E4F" style="background:#2E9E4F" aria-label="เขียว"></button>
+    <button class="sw" data-pc="#111111" style="background:#111111" aria-label="ดำ"></button>
+    <button class="sw" data-pc="#FFD60A" style="background:#FFD60A" aria-label="เหลือง"></button>
+    <button class="sw" data-pc="#FF7A00" style="background:#FF7A00" aria-label="ส้ม"></button>
+  </div>
+  <span class="sep"></span>
+  <div class="nav-grp">
+    <button class="btn sm" data-ps="2">บาง</button>
+    <button class="btn sm" data-ps="3">กลาง</button>
+    <button class="btn sm" data-ps="6">หนา</button>
+  </div>
+  <span class="sep"></span>
+  <div class="nav-grp">
+    <button class="btn sm" id="penUndo" title="ย้อนกลับ (Cmd/Ctrl+Z)">↶ ย้อน</button>
+    <button class="btn sm danger" id="penClear">ล้างหน้านี้</button>
+    <button class="btn sm" id="penFinger" aria-pressed="false" title="เปิด = วาดด้วยนิ้วได้ / ปิด = วาดเฉพาะ Apple Pencil (นิ้วใช้เลื่อนหน้า)">☝ นิ้ววาด</button>
+    <button class="btn sm" id="penOff">✕ ปิด</button>
+  </div>
 </div>
 
 <main>
@@ -696,7 +734,7 @@ Give 2 examples for a word or phrase and 1 for a sentence.`;
 /* ---------- Text Selection Handler (รองรับทั้ง Mouse, Touch และ iPadOS selectionchange) ---------- */
 let selTimer=null;
 function checkSelectionNow(){
-  if(cropMode)return;
+  if(cropMode||penMode)return;
   const sel=window.getSelection();
   if(!sel||sel.rangeCount===0)return;
   // ตรวจว่าข้อความที่เลือกอยู่ในพื้นที่ #reader ไม่ใช่ในแถบเมนูหรือแผงแปล
@@ -710,7 +748,7 @@ function checkSelectionNow(){
 }
 
 function scheduleSelCheck(delay=80){
-  if(cropMode)return;
+  if(cropMode||penMode)return;
   clearTimeout(selTimer);
   selTimer=setTimeout(checkSelectionNow,delay);
 }
@@ -719,7 +757,7 @@ reader.addEventListener('mouseup',()=>scheduleSelCheck(20));
 reader.addEventListener('touchend',()=>scheduleSelCheck(120));
 // iPadOS Safari ใช้ตัวเลื่อน Selection Handle สีฟ้า ซึ่งจะยิง event selectionchange ตอนลากปรับขอบ
 document.addEventListener('selectionchange',()=>{
-  if(!cropMode)scheduleSelCheck(450);
+  if(!cropMode&&!penMode)scheduleSelCheck(450);
 });
 
 /* ---------- Navigation, Zoom, Rotation & Auto-Bookmark State ---------- */
@@ -803,12 +841,14 @@ function reset(){
   stage.querySelectorAll('.pg,.doc,.empty').forEach(n=>n.remove());
   last='';
   bmNote.textContent='';
+  pen.undo.length=0;
 }
 
 function showDoc(paras){
   reset();
   docState={type:'text',fileKey:'',zoom:1.0,rotation:0,totalPages:1,currentPage:1,pdfDoc:null,pagesMeta:[],imgObj:null};
   updateNavUI();
+  if(penMode)setPenMode(false,true);
   const d=document.createElement('div');d.className='doc';
   d.innerHTML=paras.map(p=>`<p>${esc(p)}</p>`).join('');stage.prepend(d);
 }
@@ -871,6 +911,7 @@ function rebuildPdfLayout(){
     const tl=document.createElement('div');tl.className='textLayer';
     pg.innerHTML='';
     pg.append(c,tl);
+    attachInk(pg,item.num,vp.width,vp.height);
 
     await page.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[dpr,0,0,dpr,0,0]}).promise;
     if(my!==token)return;
@@ -969,6 +1010,7 @@ function renderImageStage(){
 
   const tl=document.createElement('div');tl.className='textLayer';
   pg.append(c,tl);stage.insertBefore(pg,box);
+  attachInk(pg,1,w,h);
   if(isAutoOcr())schedulePageOcr(pg,c,tl,my);
 }
 
@@ -976,7 +1018,7 @@ function openImage(file){
   reset();
   const img=new Image();
   img.onload=()=>{
-    docState={type:'image',fileKey:'',zoom:1.0,rotation:0,totalPages:1,currentPage:1,pdfDoc:null,pagesMeta:[],imgObj:img};
+    docState={type:'image',fileKey:'img_'+file.name+'_'+file.size,zoom:1.0,rotation:0,totalPages:1,currentPage:1,pdfDoc:null,pagesMeta:[],imgObj:img};
     updateNavUI();
     renderImageStage();
   };
@@ -1039,6 +1081,7 @@ let cropMode=null,st=null,activePointerId=null;
 
 function setCropMode(mode){
   cropMode=(cropMode===mode)?null:mode;
+  if(cropMode&&penMode)setPenMode(false,true);
   document.body.classList.toggle('crop',Boolean(cropMode));
   cropTrBtn.classList.toggle('on',cropMode==='ocr');
   cropTrBtn.setAttribute('aria-pressed',cropMode==='ocr');
@@ -1117,7 +1160,7 @@ async function capture(r){
   const f=isIOS?2.0:2.5;
   const out=document.createElement('canvas');out.width=Math.round(r.w*f);out.height=Math.round(r.h*f);
   const g=out.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,out.width,out.height);
-  const cs=[...stage.querySelectorAll('canvas')];
+  const cs=[...stage.querySelectorAll('canvas:not(.ink)')];
   if(cs.length){
     for(const c of cs){
       if(!c.width||!c.height)continue;
@@ -1177,6 +1220,238 @@ async function analyze(blob){
   }catch(e){fail(e)}
 }
 
+
+/* ---------- ปากกา / ไฮไลต์ / ยางลบ (Apple Pencil, นิ้ว, เมาส์) ---------- */
+const penBar=$('#penBar'),penBtn=$('#penBtn');
+let penMode=false;
+const pen=Object.assign({tool:'pen',color:'#E53935',size:3,finger:false},store.json('readlens_pen',{}));
+pen.undo=[];pen.seen=false;
+if(pen.tool==='eraser')pen.tool='pen';
+
+const inkStore={
+  all:store.json('readlens_ink',{}),
+  timer:null,
+  save(){
+    clearTimeout(this.timer);
+    this.timer=setTimeout(()=>{
+      try{localStorage.setItem('readlens_ink',JSON.stringify(this.all))}
+      catch(e){bmNote.textContent='⚠ พื้นที่เก็บเต็ม บันทึกรอยปากกาไม่ได้'}
+    },400);
+  }
+};
+function savePenCfg(){store.set('readlens_pen',JSON.stringify({tool:pen.tool==='eraser'?'pen':pen.tool,color:pen.color,size:pen.size,finger:pen.finger}))}
+
+/* เก็บเส้นเป็นพิกัดสัดส่วน 0-1 ของหน้า จึงคงตำแหน่งเดิมเมื่อซูม/หมุน; แยกตามไฟล์ + หน้า + มุมหมุน */
+function inkStrokes(num,create,rot,fk){
+  fk=fk||docState.fileKey;rot=rot==null?docState.rotation:rot;
+  if(!fk)return [];
+  let d=inkStore.all[fk];
+  if(!d){if(!create)return [];d=inkStore.all[fk]={}}
+  const k=num+'@'+rot;
+  if(!d[k]){if(!create)return [];d[k]=[]}
+  return d[k];
+}
+
+function drawStroke(g,s,w,h){
+  const p=s.p;if(!p||p.length<2)return;
+  g.save();
+  g.lineCap='round';g.lineJoin='round';
+  g.strokeStyle=s.c;g.fillStyle=s.c;g.lineWidth=s.w*w;
+  g.globalAlpha=s.t==='hl'?0.35:1;
+  if(p.length===2){
+    g.beginPath();g.arc(p[0]*w,p[1]*h,s.w*w/2,0,Math.PI*2);g.fill();
+  }else{
+    g.beginPath();g.moveTo(p[0]*w,p[1]*h);
+    for(let i=2;i<p.length-2;i+=2){
+      g.quadraticCurveTo(p[i]*w,p[i+1]*h,(p[i]+p[i+2])/2*w,(p[i+1]+p[i+3])/2*h);
+    }
+    g.lineTo(p[p.length-2]*w,p[p.length-1]*h);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function redrawInk(c){
+  if(!c.width||!c._w)return;
+  const g=c.getContext('2d'),k=c.width/c._w;
+  g.setTransform(k,0,0,k,0,0);
+  g.clearRect(0,0,c._w,c._h);
+  for(const s of inkStrokes(+c.dataset.num))drawStroke(g,s,c._w,c._h);
+  if(c._live)drawStroke(g,c._live,c._w,c._h);
+}
+function redrawAllInk(){stage.querySelectorAll('canvas.ink').forEach(redrawInk)}
+
+function segDist2(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;
+  let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=t<0?0:(t>1?1:t);
+  const cx=ax+t*dx,cy=ay+t*dy;
+  return (px-cx)*(px-cx)+(py-cy)*(py-cy);
+}
+function eraseAt(c,x,y,op){
+  const w=c._w,h=c._h,arr=inkStrokes(+c.dataset.num),px=x*w,py=y*h;
+  let hit=false;
+  for(let i=arr.length-1;i>=0;i--){
+    const s=arr[i],p=s.p,rad=12+s.w*w/2,r2=rad*rad;
+    let ok=false;
+    if(p.length===2)ok=((p[0]*w-px)**2+(p[1]*h-py)**2)<r2;
+    else for(let j=0;j<p.length-2;j+=2){
+      if(segDist2(px,py,p[j]*w,p[j+1]*h,p[j+2]*w,p[j+3]*h)<r2){ok=true;break}
+    }
+    if(ok){op.items.push({i,s});arr.splice(i,1);hit=true}
+  }
+  if(hit){inkStore.save();redrawInk(c)}
+}
+
+function bindInk(c){
+  let cur=null,pid=null,raf=0;
+  const pos=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]};
+
+  c.addEventListener('pointerdown',e=>{
+    if(!penMode)return;
+    if(e.pointerType==='pen')pen.seen=true;
+    if(e.pointerType==='touch'&&!pen.finger){
+      if(!pen.seen)bmNote.textContent='โหมดนี้วาดด้วย Apple Pencil — กด ☝ นิ้ววาด หากต้องการใช้นิ้ว';
+      return;
+    }
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    e.preventDefault();
+    pid=e.pointerId;
+    try{c.setPointerCapture(pid)}catch(_){}
+    const [x,y]=pos(e),num=+c.dataset.num;
+    if(pen.tool==='eraser'){
+      cur={type:'del',num,fk:docState.fileKey,rot:docState.rotation,items:[]};
+      eraseAt(c,x,y,cur);
+      return;
+    }
+    cur={t:pen.tool,c:pen.color,w:(pen.tool==='hl'?pen.size*5:pen.size)/c._w,p:[x,y]};
+    c._live=cur;redrawInk(c);
+  });
+
+  c.addEventListener('pointermove',e=>{
+    if(!cur||e.pointerId!==pid)return;
+    e.preventDefault();
+    const evs=(e.getCoalescedEvents&&e.getCoalescedEvents())||[e];
+    for(const ev of (evs.length?evs:[e])){
+      const [x,y]=pos(ev);
+      if(cur.items){eraseAt(c,x,y,cur);continue}
+      const p=cur.p,lx=p[p.length-2],ly=p[p.length-1];
+      if(((x-lx)*c._w)**2+((y-ly)*c._h)**2<0.64)continue;
+      p.push(x,y);
+    }
+    if(!cur.items&&!raf)raf=requestAnimationFrame(()=>{raf=0;redrawInk(c)});
+  });
+
+  const end=e=>{
+    if(!cur||e.pointerId!==pid)return;
+    const s=cur;cur=null;pid=null;
+    if(s.items){
+      if(s.items.length)pen.undo.push(s);
+    }else{
+      delete c._live;
+      s.p=s.p.map(v=>Math.round(v*10000)/10000);
+      const num=+c.dataset.num;
+      inkStrokes(num,true).push(s);
+      pen.undo.push({type:'add',num,fk:docState.fileKey,rot:docState.rotation,stroke:s});
+      inkStore.save();
+      redrawInk(c);
+    }
+    if(pen.undo.length>100)pen.undo.shift();
+  };
+  c.addEventListener('pointerup',end);
+  c.addEventListener('pointercancel',end);
+
+  /* ใน Safari/iPadOS: กันหน้าเลื่อนเฉพาะตอนวาดด้วย Pencil (touchType='stylus') — นิ้วยังเลื่อน/ซูมหน้าได้ปกติ */
+  const block=e=>{
+    if(!penMode)return;
+    const t=e.changedTouches&&e.changedTouches[0];
+    if(pen.finger||(t&&t.touchType==='stylus'))e.preventDefault();
+  };
+  c.addEventListener('touchstart',block,{passive:false});
+  c.addEventListener('touchmove',block,{passive:false});
+}
+
+function attachInk(pg,num,w,h){
+  const c=document.createElement('canvas');
+  c.className='ink';c.dataset.num=num;
+  const dpr=maxSafeDpr;
+  c._w=w;c._h=h;
+  c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
+  c.style.width=w+'px';c.style.height=h+'px';
+  pg.appendChild(c);
+  bindInk(c);
+  redrawInk(c);
+  return c;
+}
+
+function inkUndo(){
+  const op=pen.undo.pop();if(!op)return;
+  const arr=inkStrokes(op.num,true,op.rot,op.fk);
+  if(op.type==='add'){
+    const i=arr.lastIndexOf(op.stroke);if(i>=0)arr.splice(i,1);
+  }else{
+    for(let k=op.items.length-1;k>=0;k--)arr.splice(Math.min(op.items[k].i,arr.length),0,op.items[k].s);
+  }
+  inkStore.save();redrawAllInk();
+}
+
+function inkClearPage(){
+  const num=docState.type==='pdf'?docState.currentPage:1;
+  const arr=inkStrokes(num,true);
+  if(!arr.length)return;
+  if(!confirm('ลบรอยปากกาทั้งหมดในหน้านี้ใช่หรือไม่? (กด ↶ ย้อน เพื่อกู้คืนได้)'))return;
+  const op={type:'del',num,fk:docState.fileKey,rot:docState.rotation,items:[]};
+  for(let i=arr.length-1;i>=0;i--)op.items.push({i,s:arr[i]});
+  arr.length=0;
+  pen.undo.push(op);
+  inkStore.save();redrawAllInk();
+}
+
+function syncPenUI(){
+  const b=document.body;
+  b.classList.toggle('pen',penMode);
+  b.classList.toggle('finger',pen.finger);
+  penBtn.classList.toggle('on',penMode);
+  penBtn.setAttribute('aria-pressed',penMode);
+  penBar.classList.toggle('show',penMode);
+  penBar.querySelectorAll('[data-pt]').forEach(x=>x.classList.toggle('on',x.dataset.pt===pen.tool));
+  penBar.querySelectorAll('[data-pc]').forEach(x=>x.classList.toggle('sel',x.dataset.pc===pen.color));
+  penBar.querySelectorAll('[data-ps]').forEach(x=>x.classList.toggle('on',Number(x.dataset.ps)===pen.size));
+  const f=$('#penFinger');f.classList.toggle('on',pen.finger);f.setAttribute('aria-pressed',pen.finger);
+}
+
+function setPenMode(on,silent){
+  if(on){
+    if(!docState.type){msg('เปิดไฟล์ก่อนจึงจะเขียนได้','err');return}
+    if(docState.type==='text'){msg('ปากกาใช้ได้กับ PDF และรูปภาพ (ข้อความล้วนที่วางหรือเปิดจาก .txt/.html ยังไม่รองรับ)','err');return}
+    if(cropMode)setCropMode(cropMode);
+    try{window.getSelection().removeAllRanges()}catch(e){}
+  }
+  penMode=Boolean(on);
+  syncPenUI();
+  if(silent)return;
+  msg(penMode
+    ?'โหมดปากกา: เขียนด้วย Apple Pencil ได้เลย (นิ้วใช้เลื่อนหน้า) — เปิด ☝ นิ้ววาด หากต้องการวาดด้วยนิ้ว'
+    :'แตะลากคลุมคำหรือประโยคในเอกสาร ผลแปลจะแสดงทันทีที่นี่','hint');
+}
+
+penBtn.onclick=()=>setPenMode(!penMode);
+penBar.addEventListener('click',e=>{
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.pt)pen.tool=t.dataset.pt;
+  else if(t.dataset.pc){pen.color=t.dataset.pc;if(pen.tool==='eraser')pen.tool='pen'}
+  else if(t.dataset.ps)pen.size=Number(t.dataset.ps);
+  else if(t.id==='penUndo')inkUndo();
+  else if(t.id==='penClear')inkClearPage();
+  else if(t.id==='penFinger')pen.finger=!pen.finger;
+  else if(t.id==='penOff'){setPenMode(false);return}
+  savePenCfg();syncPenUI();
+});
+document.addEventListener('keydown',e=>{
+  const tag=(e.target&&e.target.tagName)||'';
+  if(penMode&&(e.metaKey||e.ctrlKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')&&tag!=='INPUT'&&tag!=='TEXTAREA'){e.preventDefault();inkUndo()}
+});
+syncPenUI();
+
 /* ---------- Keyboard Shortcuts (รองรับ Magic Keyboard / Smart Keyboard บน iPad) ---------- */
 document.addEventListener('keydown',e=>{
   const tag=(e.target&&e.target.tagName)||'';
@@ -1185,6 +1460,7 @@ document.addEventListener('keydown',e=>{
 
   if(e.key==='Escape'){
     stopSpeech();
+    if(penMode)setPenMode(false);
     if(cropMode)setCropMode(null);
   }else if(e.key==='c'||e.key==='C'){
     e.preventDefault();
@@ -1192,6 +1468,9 @@ document.addEventListener('keydown',e=>{
   }else if(e.key==='v'||e.key==='V'){
     e.preventDefault();
     setCropMode('ai');
+  }else if(e.key==='p'||e.key==='P'){
+    e.preventDefault();
+    setPenMode(!penMode);
   }else if(e.key==='r'||e.key==='R'){
     if(lastSpoken){
       e.preventDefault();
