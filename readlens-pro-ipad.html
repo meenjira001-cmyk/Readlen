@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ReadLens Pro">
+<title>ReadLens Pro – รองรับ iPad / Apple Pencil / Safari เต็มรูปแบบ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&family=Literata:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF0F5;--panel:#fff;--ink:#16202F;--mute:#5B6678;--line:#D7DDE8;--acc:#0B7A75;--accInk:#fff;--soft:#E3F3F1;--danger:#C0392B;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E131B;--panel:#171E2A;--ink:#E7ECF4;--mute:#93A0B4;--line:#2A3445;--acc:#4FD1C5;--accInk:#06201E;--soft:#12302F;--danger:#E74C3C}}
+:root[data-theme="dark"]{--bg:#0E131B;--panel:#171E2A;--ink:#E7ECF4;--mute:#93A0B4;--line:#2A3445;--acc:#4FD1C5;--accInk:#06201E;--soft:#12302F;--danger:#E74C3C}
+*,*::before,*::after{box-sizing:inherit;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%;-webkit-text-size-adjust:100%}
+body{height:100%;height:100dvh;margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Noto Sans Thai",-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);z-index:30;flex-shrink:0}
+.brand{font-weight:600;font-size:18px;margin-right:auto;display:flex;align-items:center;gap:6px}
+.btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;min-height:36px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;touch-action:manipulation}
+.btn:hover{border-color:var(--acc)}
+.btn.on,.btn.main{background:var(--acc);color:var(--accInk);border-color:var(--acc)}
+.btn.danger{border-color:var(--danger);color:var(--danger);background:var(--panel)}
+.btn.danger:hover{background:var(--danger);color:#fff}
+.btn.sm{padding:5px 10px;min-height:32px;font-size:13px}
+.btn:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.badge-cnt{background:var(--acc);color:var(--accInk);font-size:11px;padding:1px 6px;border-radius:99px;font-weight:600}
+.btn.on .badge-cnt{background:var(--accInk);color:var(--acc)}
+
+/* Sub-toolbar for PDF / Document Navigation & Zoom */
+#navBar{display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 14px;background:var(--panel);border-bottom:1px solid var(--line);font-size:13px;z-index:25;flex-shrink:0}
+#navBar.show{display:flex}
+.nav-grp{display:inline-flex;align-items:center;gap:5px}
+.num-in{width:54px;min-height:32px;text-align:center;font:inherit;padding:3px 4px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+.sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:minmax(0,1fr)}
+#reader{overflow:auto;-webkit-overflow-scrolling:touch;padding:14px;position:relative}
+#panel{background:var(--panel);border-left:1px solid var(--line);overflow:auto;-webkit-overflow-scrolling:touch;padding:16px}
+#stage{position:relative;margin:0 auto;padding:4px;max-width:100%}
+.crop #reader{overflow:hidden;touch-action:none}
+.crop #stage{cursor:crosshair;user-select:none;-webkit-user-select:none;touch-action:none}
+.crop .textLayer{pointer-events:none}
+#box{position:absolute;border:2.5px dashed var(--acc);background:rgba(11,122,117,.16);pointer-events:none;z-index:20;border-radius:4px}
+.pg{position:relative;display:block;margin:0 auto 14px;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+.pg canvas{display:block}
+.textLayer{position:absolute;inset:0;line-height:1;overflow:hidden;-webkit-user-select:text;user-select:text}
+.textLayer span{position:absolute;color:transparent;white-space:pre;cursor:text;transform-origin:0 0;-webkit-user-select:text;user-select:text}
+.ocr-badge{position:absolute;top:8px;right:8px;z-index:10;background:rgba(22,32,47,.84);color:#fff;font-size:12px;padding:4px 10px;border-radius:99px;pointer-events:none;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.ocr-badge.done{background:rgba(11,122,117,.9)}
+.doc{background:#fff;color:#1b2330;max-width:720px;margin:0 auto;padding:36px 40px;font:18px/1.8 Literata,Georgia,serif;border-radius:4px;transform-origin:top center;-webkit-user-select:text;user-select:text}
+.doc p{margin:0 0 1em}
+::selection{background:#FFD84D;color:#000}
+.textLayer span::selection{background:rgba(255,196,0,.45);color:transparent}
+.pg canvas{-webkit-touch-callout:none}
+input,textarea,select{font-size:16px}
+.btn{-webkit-appearance:none;appearance:none}
+
+.empty{max-width:480px;margin:8vh auto;text-align:center;padding:0 12px}
+.empty h2{font-size:22px;margin:0 0 8px}
+.empty p{color:var(--mute);margin:0 0 18px}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.hint{color:var(--mute)}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.hd{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.src{font:600 19px/1.4 Literata,Georgia,serif;overflow-wrap:anywhere}
+.rd{color:var(--mute);margin:2px 0 8px;font-size:14px}
+.tr{font-size:17px;font-weight:600;margin-bottom:10px}
+.badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:var(--soft);color:var(--acc);font-weight:600;margin-bottom:6px}
+.audio-ctrls{display:flex;gap:6px;flex:none;align-items:center}
+.say{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:var(--soft);color:var(--acc);cursor:pointer;touch-action:manipulation}
+.say:hover{border-color:var(--acc)}
+.say.stop{background:#FDECEC;color:var(--danger);border-color:#F5B7B1}
+.say.stop:hover{background:var(--danger);color:#fff}
+.ex{border-top:1px solid var(--line);padding-top:8px;margin-top:8px;display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+.ex p{margin:0}.ex .th{color:var(--mute);font-size:14px}
+.note{background:var(--soft);border-radius:8px;padding:8px 10px;margin-top:10px;font-size:14px}
+.lbl{font-weight:600;margin:0 0 6px}
+.shot{max-width:100%;border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
+.ans{font-weight:600;color:var(--acc)}
+.err{color:var(--danger)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+
+/* Vocab List Styles */
+.v-item{border-bottom:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.v-item:last-child{border-bottom:0}
+.v-word{font:600 16px/1.3 Literata,Georgia,serif}
+.v-mean{font-size:14px;color:var(--ink)}
+.v-meta{font-size:12px;color:var(--mute)}
+
+/* Floating Global Stop Audio Pill */
+#stopToast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));right:20px;z-index:50;display:none;align-items:center;gap:8px;background:var(--danger);color:#fff;padding:10px 16px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer;font-weight:600;font-size:14px;border:0;touch-action:manipulation}
+#stopToast.show{display:inline-flex}
+
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;width:min(560px,92vw);max-height:88dvh;overflow:auto;padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+textarea{width:100%;height:200px;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px}
+.sub-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.kbd{font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--mute)}
+
+/* iPad Portrait / Split View & Mobile Responsive */
+@media (max-width:900px){
+  main{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58fr) minmax(0,42fr)}
+  #panel{border-left:0;border-top:1px solid var(--line)}
+  .doc{padding:20px}
+}
+@media (pointer:coarse){
+  .kbd{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">ReadLens</span>
+  <label class="btn main">เปิดไฟล์<input type="file" id="f" hidden accept=".pdf,.html,.htm,.txt,image/*,application/pdf,text/plain,text/html"></label>
+  <button class="btn" id="pasteBtn">วางข้อความ</button>
+  <button class="btn" id="cropTrBtn" aria-pressed="false" title="คีย์ลัด C : ลากกรอบอ่าน OCR และแปลฟรีทันที">ครอปแปลไว (OCR) <span class="kbd">C</span></button>
+  <button class="btn" id="cropBtn" aria-pressed="false" title="คีย์ลัด V : ลากกรอบให้ Gemini เฉลยโจทย์">ครอปโจทย์ (AI) <span class="kbd">V</span></button>
+  <button class="btn" id="vocabTabBtn" title="ดูรายการคำศัพท์ที่บันทึกไว้และส่งออก CSV">คลังศัพท์ <span class="badge-cnt" id="vCnt">0</span></button>
+  <button class="btn" id="setBtn">ตั้งค่า</button>
+</header>
+
+<div id="navBar" aria-label="แถบควบคุมหน้าและซูม">
+  <div class="nav-grp" id="pageCtrl">
+    <button class="btn sm" id="prevPg" title="หน้าก่อนหน้า">◀</button>
+    <span>หน้า</span>
+    <input type="number" inputmode="numeric" pattern="[0-9]*" class="num-in" id="pgIn" min="1" value="1">
+    <span id="pgTot">/ 1</span>
+    <button class="btn sm" id="nextPg" title="หน้าถัดไป">▶</button>
+  </div>
+  <span class="sep" id="navSep1"></span>
+  <div class="nav-grp">
+    <button class="btn sm" id="zoomOut" title="ซูมออก (-)">−</button>
+    <span id="zoomLbl" style="min-width:44px;text-align:center;font-weight:600">100%</span>
+    <button class="btn sm" id="zoomIn" title="ซูมเข้า (+)">+</button>
+    <button class="btn sm" id="zoomFit" title="พอดีความกว้าง">พอดีจอ</button>
+  </div>
+  <span class="sep" id="navSep2"></span>
+  <div class="nav-grp" id="rotCtrl">
+    <button class="btn sm" id="rotBtn" title="หมุนหน้ากระดาษ 90 องศา">↻ หมุน 90°</button>
+  </div>
+  <span id="bmNote" class="hint" style="margin-left:auto;font-size:12px"></span>
+</div>
+
+<main>
+  <section id="reader" aria-label="เอกสาร">
+    <div id="stage">
+      <div class="empty" id="empty">
+        <h2>เปิดไฟล์เพื่อเริ่มอ่าน</h2>
+        <p>รองรับ <b>iPad / Apple Pencil / Safari</b> เปิด PDF ข้อความ, <b>PDF สแกน/รูปภาพ (OCR อัตโนมัติ)</b>, ซูม/ข้ามหน้า/จำหน้าล่าสุด และคลังศัพท์ส่งออก CSV</p>
+        <div class="row"><button class="btn" id="demoBtn">ลองข้อความตัวอย่าง</button></div>
+      </div>
+      <div id="box" hidden></div>
+    </div>
+  </section>
+  <aside id="panel" aria-live="polite"><p class="hint">แตะลากคลุมคำหรือประโยคในเอกสาร (หรือใช้ Apple Pencil ลากในโหมดครอป) ผลแปลจะแสดงทันทีที่นี่<br><br><small>หากลากคลุมคำใน iPadOS ไม่ติด ให้กดปุ่ม <b>ครอปแปลไว (OCR)</b> แล้วลากกรอบคลุมคำที่ต้องการได้เลยครับ</small></p></aside>
+</main>
+
+<button id="stopToast" title="แตะหรือกด Esc เพื่อหยุดเสียงอ่าน">⏹ หยุดเสียงอ่าน</button>
+
+<dialog id="dlg">
+  <p class="lbl">วางข้อความหรือเนื้อหาจากเว็บ</p>
+  <textarea id="ta" placeholder="คัดลอกบทความจากเว็บไซต์มาวางที่นี่"></textarea>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="dx">ยกเลิก</button><button class="btn main" id="dok">แสดงในหน้าอ่าน</button></div>
+</dialog>
+
+<dialog id="sdlg">
+  <p class="lbl">ตั้งค่า Gemini, ระบบ OCR และพฤติกรรมการใช้งาน</p>
+  <p class="hint" style="margin-top:0">การแปลคำและระบบ OCR ทำงานฟรีทันทีโดยไม่ต้องใช้ API Key ส่วน API Key ด้านล่างใช้สำหรับปุ่มครอปโจทย์ให้ AI วิเคราะห์</p>
+  
+  <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer">
+    <input type="checkbox" id="autoOcr" checked>
+    <span>สร้างชั้นข้อความล่องหน (Auto-OCR) อัตโนมัติเมื่อเปิดไฟล์รูปภาพหรือ PDF สแกน</span>
+  </label>
+  <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer">
+    <input type="checkbox" id="ocrEnhance" checked>
+    <span>ปรับภาพขาวดำความคมชัดสูง (Pre-processing) ก่อนทำ OCR เพื่อลดการอ่านเพี้ยน</span>
+  </label>
+  <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
+    <input type="checkbox" id="stickyCrop">
+    <span>เปิดโหมดครอปต่อเนื่อง (Sticky Crop — ไม่ปิดกรอบอัตโนมัติหลังครอปเสร็จ)</span>
+  </label>
+
+  <p class="lbl">Gemini API key</p><input id="gk" type="password" autocomplete="off" style="width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)">
+  <p class="lbl" style="margin-top:10px">ชื่อโมเดลหลัก (สลับรุ่นสำรองให้อัตโนมัติหากเซิร์ฟเวอร์หนาแน่น)</p><input id="gm" style="width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)" placeholder="gemini-3.6-flash">
+  <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" id="sx">ยกเลิก</button><button class="btn main" id="sok">บันทึก</button></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* Fallback สำหรับ iPadOS เก่าที่ยังไม่มี <dialog>.showModal */
+if(window.HTMLDialogElement&&!HTMLDialogElement.prototype.showModal){
+  HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','')};
+  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')};
+}
+if(!window.HTMLDialogElement){document.querySelectorAll('dialog').forEach(d=>{d.showModal=()=>d.setAttribute('open','');d.close=()=>d.removeAttribute('open')})}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TH=/[\u0E00-\u0E7F]/;
+const stage=$('#stage'),panel=$('#panel'),box=$('#box'),reader=$('#reader');
+
+/* ตรวจสอบอุปกรณ์ iPad / iOS (รวมถึง iPadOS ที่รายงานตัวเป็น Macintosh + TouchPoints) */
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const maxSafeDpr=isIOS?1.5:Math.min(2,window.devicePixelRatio||1);
+
+const ICON_PLAY='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 010 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const ICON_STOP='<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+
+const audioBtns=(t,audioUrl='')=>`
+  <div class="audio-ctrls">
+    <button class="say" data-say="${esc(t)}" data-audio="${esc(audioUrl)}" title="ฟังเสียงอ่าน" aria-label="ฟังเสียง">${ICON_PLAY}</button>
+    <button class="say stop" data-stop="1" title="หยุดเสียงอ่าน" aria-label="หยุดเสียง">${ICON_STOP}</button>
+  </div>`;
+
+let token=0,ctl=null,last='',lastSpoken='',lastAudioUrl='',lastResult=null;
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+const store={
+  get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},
+  set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},
+  json:(k,def)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+};
+const toB64=b=>new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.readAsDataURL(b)});
+const isAutoOcr=()=>store.get('autoOcr')!=='0';
+const isOcrEnhance=()=>store.get('ocrEnhance')!=='0';
+const isStickyCrop=()=>store.get('stickyCrop')==='1';
+
+/* ---------- Audio Playback + Stop Control (iOS Safari Unlock Ready) ---------- */
+let activeAudio=null;
+let ttsKeepAlive=null;
+const stopToast=$('#stopToast');
+
+function setSpeakingUI(on){
+  stopToast.classList.toggle('show',Boolean(on));
+}
+
+function stopSpeech(){
+  if(ttsKeepAlive){clearInterval(ttsKeepAlive);ttsKeepAlive=null;}
+  try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}
+  if(activeAudio){
+    try{activeAudio.pause();activeAudio.currentTime=0;}catch(e){}
+    activeAudio=null;
+  }
+  setSpeakingUI(false);
+}
+
+function say(t,audioUrl=''){
+  if(!t)return;
+  stopSpeech();
+  lastSpoken=t;
+  lastAudioUrl=audioUrl||'';
+  if(audioUrl){
+    try{
+      const a=new Audio(audioUrl);
+      a.setAttribute('playsinline','');
+      activeAudio=a;
+      setSpeakingUI(true);
+      a.onended=()=>{activeAudio=null;setSpeakingUI(false)};
+      a.onerror=()=>{activeAudio=null;speakTTS(t)};
+      const p=a.play();
+      if(p&&p.catch)p.catch(()=>{activeAudio=null;speakTTS(t)});
+      return;
+    }catch(e){}
+  }
+  speakTTS(t);
+}
+
+function speakTTS(t){
+  try{
+    if(!window.speechSynthesis)return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t);
+    u.lang=TH.test(t)?'th-TH':'en-US';
+    u.rate=.92;
+    u.onstart=()=>setSpeakingUI(true);
+    u.onend=()=>{if(ttsKeepAlive){clearInterval(ttsKeepAlive);ttsKeepAlive=null;}setSpeakingUI(false)};
+    u.onerror=()=>{if(ttsKeepAlive){clearInterval(ttsKeepAlive);ttsKeepAlive=null;}setSpeakingUI(false)};
+    setSpeakingUI(true);
+    speechSynthesis.speak(u);
+    // แก้บั๊ก iOS Safari ที่หยุดอ่านเองกลางคันเมื่อประโยคยาวเกิน 15 วินาที
+    if(isIOS){
+      ttsKeepAlive=setInterval(()=>{
+        if(!speechSynthesis.speaking){clearInterval(ttsKeepAlive);ttsKeepAlive=null;setSpeakingUI(false);}
+        else{speechSynthesis.pause();speechSynthesis.resume();}
+      },10000);
+    }
+  }catch(e){setSpeakingUI(false)}
+}
+
+stopToast.onclick=stopSpeech;
+
+/* ---------- Vocabulary Notebook & CSV Export ---------- */
+let vocabList=store.json('readlens_vocab',[]);
+function saveVocabStore(){
+  store.set('readlens_vocab',JSON.stringify(vocabList));
+  $('#vCnt').textContent=vocabList.length;
+}
+$('#vCnt').textContent=vocabList.length;
+
+function addVocabItem(item){
+  if(!item||!item.text)return;
+  const idx=vocabList.findIndex(x=>x.text.toLowerCase()===item.text.toLowerCase());
+  const entry={
+    text:item.text,
+    phonetic:item.phonetic||'',
+    meaning:item.meaning||'',
+    example:(item.examples&&item.examples[0]&&item.examples[0].en)||'',
+    note:item.note||'',
+    savedAt:new Date().toISOString().slice(0,10)
+  };
+  if(idx>=0)vocabList[idx]=entry;
+  else vocabList.unshift(entry);
+  saveVocabStore();
+}
+
+function removeVocabItem(index){
+  vocabList.splice(index,1);
+  saveVocabStore();
+  renderVocabPanel();
+}
+
+function exportVocabCsv(){
+  if(!vocabList.length)return;
+  const csvEsc=v=>`"${String(v||'').replace(/"/g,'""')}"`;
+  const headers=['Word / Phrase','Phonetic','Meaning (TH)','Example','Note','Date'];
+  const rows=vocabList.map(v=>[v.text,v.phonetic,v.meaning,v.example,v.note,v.savedAt].map(csvEsc).join(','));
+  const content='\uFEFF'+headers.join(',')+'\n'+rows.join('\n');
+  const fileName=`readlens-vocab-${new Date().toISOString().slice(0,10)}.csv`;
+  const blob=new Blob([content],{type:'text/csv;charset=utf-8;'});
+
+  // บน iPad/iPhone รองรับทั้ง Web Share API (Save to Files) และลิงก์ดาวน์โหลดปกติ
+  if(isIOS&&navigator.canShare){
+    try{
+      const fileObj=new File([blob],fileName,{type:'text/csv'});
+      if(navigator.canShare({files:[fileObj]})){
+        navigator.share({files:[fileObj],title:fileName}).catch(()=>{});
+        return;
+      }
+    }catch(e){}
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
+function renderVocabPanel(){
+  if(!vocabList.length){
+    panel.innerHTML=`<div class="card"><p class="lbl">คลังคำศัพท์ส่วนตัว (0 คำ)</p><p class="hint">ยังไม่มีคำศัพท์ที่บันทึกไว้ ลากคลุมคำศัพท์แล้วกดปุ่ม <b>+ บันทึกศัพท์</b> เพื่อเก็บไว้ทบทวนและส่งออกเป็นไฟล์ CSV</p></div>`;
+    return;
+  }
+  panel.innerHTML=`
+    <div class="card">
+      <div class="hd" style="align-items:center;margin-bottom:8px">
+        <div class="lbl" style="margin:0">คลังคำศัพท์ (${vocabList.length} รายการ)</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm main" id="expCsvBtn">⬇ ส่งออก CSV</button>
+          <button class="btn sm danger" id="clrVocabBtn">ล้างทั้งหมด</button>
+        </div>
+      </div>
+      <div>
+        ${vocabList.map((v,i)=>`
+          <div class="v-item">
+            <div>
+              <div class="v-word">${esc(v.text)} <span class="v-meta">${esc(v.phonetic)}</span></div>
+              <div class="v-mean">${esc(v.meaning)}</div>
+              ${v.example?`<div class="v-meta" style="margin-top:2px">"${esc(v.example)}"</div>`:''}
+            </div>
+            <div style="display:flex;gap:4px;flex:none">
+              <button class="say" style="width:32px;height:32px" data-say="${esc(v.text)}" title="ฟังเสียง">${ICON_PLAY}</button>
+              <button class="btn sm danger" data-delv="${i}" title="ลบ">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+}
+$('#vocabTabBtn').onclick=renderVocabPanel;
+
+/* ---------- Image Pre-processing for Accurate OCR ---------- */
+function preprocessCanvasForOcr(srcCanvas){
+  if(!isOcrEnhance())return srcCanvas;
+  const w=srcCanvas.width,h=srcCanvas.height;
+  const out=document.createElement('canvas');
+  out.width=w;out.height=h;
+  const ctx=out.getContext('2d');
+  ctx.drawImage(srcCanvas,0,0);
+  const imgData=ctx.getImageData(0,0,w,h);
+  const d=imgData.data;
+  const contrast=1.45;
+  const intercept=128*(1-contrast);
+  for(let i=0;i<d.length;i+=4){
+    const lum=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    let c=lum*contrast+intercept;
+    c=c<0?0:(c>255?255:c);
+    d[i]=d[i+1]=d[i+2]=c;
+  }
+  ctx.putImageData(imgData,0,0);
+  return out;
+}
+
+/* ---------- Tesseract OCR Engine (Singleton Worker + Queue) ---------- */
+let ocrWorkerP=null;
+function getOcrWorker(){
+  if(!ocrWorkerP){
+    ocrWorkerP=(async()=>{
+      if(!window.Tesseract)throw new Error('ocr_lib_missing');
+      const w=await Tesseract.createWorker('eng');
+      return w;
+    })();
+  }
+  return ocrWorkerP;
+}
+
+let ocrChain=Promise.resolve();
+function enqueueOcr(fn){
+  const p=ocrChain.then(fn,fn);
+  ocrChain=p.catch(()=>{});
+  return p;
+}
+
+function injectOcrTextLayer(tl,words,scaleX,scaleY){
+  tl.innerHTML='';
+  const frag=document.createDocumentFragment();
+  for(const w of (words||[])){
+    const txt=(w.text||'').trim();
+    if(!txt||!w.bbox)continue;
+    const {x0,y0,x1,y1}=w.bbox;
+    const boxW=(x1-x0)*scaleX;
+    const boxH=(y1-y0)*scaleY;
+    if(boxW<=0||boxH<=0)continue;
+    const sp=document.createElement('span');
+    sp.textContent=txt+' ';
+    sp.style.left=(x0*scaleX)+'px';
+    sp.style.top=(y0*scaleY)+'px';
+    sp.style.fontSize=Math.max(8,boxH*0.88)+'px';
+    sp.style.lineHeight=boxH+'px';
+    sp.style.letterSpacing='0px';
+    frag.appendChild(sp);
+    requestAnimationFrame(()=>{
+      const actualW=sp.getBoundingClientRect().width;
+      if(actualW>0)sp.style.transform=`scaleX(${(boxW/actualW).toFixed(3)})`;
+    });
+  }
+  tl.appendChild(frag);
+}
+
+function schedulePageOcr(pg,canvas,tl,myToken){
+  const badge=document.createElement('div');
+  badge.className='ocr-badge';
+  badge.textContent='🔍 กำลังสแกนข้อความ (OCR)...';
+  pg.appendChild(badge);
+
+  enqueueOcr(async()=>{
+    if(myToken!==token)return;
+    try{
+      const worker=await getOcrWorker();
+      if(myToken!==token)return;
+      const procCanvas=preprocessCanvasForOcr(canvas);
+      const {data}=await worker.recognize(procCanvas);
+      // คืนหน่วยความจำ canvas ชั่วคราวทันที (สำคัญมากบน iPadOS)
+      procCanvas.width=0;procCanvas.height=0;
+      if(myToken!==token)return;
+      const cssW=parseFloat(canvas.style.width)||canvas.width;
+      const cssH=parseFloat(canvas.style.height)||canvas.height;
+      injectOcrTextLayer(tl,data.words,cssW/canvas.width,cssH/canvas.height);
+      badge.className='ocr-badge done';
+      badge.textContent='✓ ลากคลุมแปลได้แล้ว';
+      setTimeout(()=>badge.remove(),2500);
+    }catch(e){
+      if(myToken!==token)return;
+      badge.textContent='⚠ OCR ไม่สำเร็จ (ใช้ปุ่มครอปแปลไวแทนได้)';
+      setTimeout(()=>badge.remove(),4000);
+    }
+  });
+}
+
+/* ---------- 1. Fast Free Translation (Google Translate + Dictionary API) ---------- */
+const memCache=new Map();
+
+async function fastTranslate(text){
+  const key=text.toLowerCase();
+  if(memCache.has(key))return memCache.get(key);
+
+  const toEn=TH.test(text);
+  const sl=toEn?'th':'en';
+  const tl=toEn?'en':'th';
+  const isSingleWord=!toEn && /^[a-zA-Z'-]+$/.test(text);
+
+  const gtUrl=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(text)}`;
+  const dictUrl=isSingleWord?`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(text.toLowerCase())}`:null;
+
+  const [gtRes,dictRes]=await Promise.allSettled([
+    fetch(gtUrl,{signal:ctl.signal}).then(r=>r.ok?r.json():Promise.reject(r.status)),
+    dictUrl?fetch(dictUrl,{signal:ctl.signal}).then(r=>r.ok?r.json():null):Promise.resolve(null)
+  ]);
+
+  if(gtRes.status!=='fulfilled')throw new Error('translate_failed');
+  const gt=gtRes.value;
+
+  const mainTr=(gt[0]||[]).map(x=>x[0]).filter(Boolean).join('');
+  let phonetic=(gt[0]||[]).map(x=>x[3]||x[2]).filter(Boolean).join(' ');
+  let posList=[];
+  let examples=[];
+  let audioUrl='';
+
+  if(Array.isArray(gt[1])){
+    gt[1].forEach(group=>{
+      const pos=group[0]||'';
+      const words=(group[1]||[]).slice(0,4).join(', ');
+      if(words)posList.push(`${pos ? pos+': ' : ''}${words}`);
+    });
+  }
+
+  if(dictRes.status==='fulfilled' && Array.isArray(dictRes.value) && dictRes.value[0]){
+    const entry=dictRes.value[0];
+    const pObj=(entry.phonetics||[]).find(p=>p.text)||entry;
+    if(pObj.text)phonetic=pObj.text;
+    const aObj=(entry.phonetics||[]).find(p=>p.audio);
+    if(aObj && aObj.audio)audioUrl=aObj.audio.startsWith('//')?'https:'+aObj.audio:aObj.audio.replace(/^http:/,'https:');
+    for(const m of (entry.meanings||[])){
+      for(const d of (m.definitions||[])){
+        if(d.example && examples.length<2){
+          examples.push({en:d.example,th:''});
+        }
+      }
+    }
+  }
+
+  const result={
+    text,
+    meaning:mainTr,
+    phonetic,
+    posList,
+    examples,
+    audioUrl,
+    source:'Google Translate'+(audioUrl?' + Dict':'')
+  };
+  memCache.set(key,result);
+  return result;
+}
+
+/* ---------- 2. Gemini API with Auto-Fallback ---------- */
+async function callModel(model,key,parts,signal){
+  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{
+    method:'POST',signal,
+    headers:{'Content-Type':'application/json','x-goog-api-key':key},
+    body:JSON.stringify({contents:[{parts}],generationConfig:{responseMimeType:'application/json',temperature:.2}})
+  });
+  if(!res.ok){
+    const errBody=await res.json().catch(()=>({}));
+    const e=new Error(errBody?.error?.message||'http');
+    e.status=res.status;
+    throw e;
+  }
+  const d=await res.json();
+  const t=((((d.candidates||[])[0]||{}).content||{}).parts||[]).map(p=>p.text||'').join('');
+  return JSON.parse(t.replace(/```json|```/g,'').trim());
+}
+
+async function gjson(prompt,o){
+  o=o||{};const key=store.get('gkey');
+  const primary=store.get('gmodel')||'gemini-3.6-flash';
+  const fallbacks=[primary,'gemini-3.5-flash-lite','gemini-2.5-flash','gemini-3.8-flash'].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const parts=[{text:prompt}];
+  for(const im of o.images||[])parts.push({inline_data:{mime_type:im.type||'image/png',data:await toB64(im)}});
+  
+  let lastErr;
+  for(const m of fallbacks){
+    try{
+      return await callModel(m,key,parts,o.signal);
+    }catch(e){
+      if(e.name==='AbortError'||e.code==='aborted')throw e;
+      lastErr=e;
+      if(e.status===503||e.status===429||e.status===404)continue;
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+const sd=$('#sdlg');
+function openSet(){
+  $('#gk').value=store.get('gkey')||'';
+  $('#gm').value=store.get('gmodel')||'';
+  $('#autoOcr').checked=isAutoOcr();
+  $('#ocrEnhance').checked=isOcrEnhance();
+  $('#stickyCrop').checked=isStickyCrop();
+  sd.showModal();
+}
+$('#setBtn').onclick=openSet;$('#sx').onclick=()=>sd.close();
+$('#sok').onclick=()=>{
+  store.set('gkey',$('#gk').value.trim());
+  store.set('gmodel',$('#gm').value.trim());
+  store.set('autoOcr',$('#autoOcr').checked?'1':'0');
+  store.set('ocrEnhance',$('#ocrEnhance').checked?'1':'0');
+  store.set('stickyCrop',$('#stickyCrop').checked?'1':'0');
+  sd.close();
+  msg('บันทึกการตั้งค่าแล้ว');
+};
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-say]');
+  if(b)say(b.dataset.say,b.dataset.audio||'');
+  const stp=e.target.closest('[data-stop]');
+  if(stp)stopSpeech();
+  const aiBtn=e.target.closest('[data-deep]');
+  if(aiBtn)deepExplain(aiBtn.dataset.deep);
+  const saveBtn=e.target.closest('#saveVocabBtn');
+  if(saveBtn && lastResult){
+    addVocabItem(lastResult);
+    saveBtn.textContent='✓ บันทึกแล้ว';
+    saveBtn.classList.add('on');
+  }
+  if(e.target.id==='expCsvBtn')exportVocabCsv();
+  if(e.target.id==='clrVocabBtn'){
+    if(confirm('ลบคำศัพท์ที่บันทึกไว้ทั้งหมดใช่หรือไม่?')){
+      vocabList=[];saveVocabStore();renderVocabPanel();
+    }
+  }
+  const delV=e.target.closest('[data-delv]');
+  if(delV)removeVocabItem(Number(delV.dataset.delv));
+});
+
+const msg=(h,c)=>{panel.innerHTML=`<p class="${c||'hint'}">${h}</p>`};
+function fail(e){
+  if(!e||e.name==='AbortError'||e.code==='aborted')return;
+  const m=e.status===400||e.status===401||e.status===403?'API key หรือชื่อโมเดลไม่ถูกต้อง ตรวจที่ปุ่มตั้งค่า':e.status===429||e.status===503?'ขณะนี้เซิร์ฟเวอร์ Gemini มีผู้ใช้งานหนาแน่นชั่วคราว รอสักครู่แล้วลองใหม่':e instanceof TypeError?'เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ต':'เกิดข้อผิดพลาด: '+(e.message||'ลองอีกครั้ง');
+  msg(m,'err');
+}
+
+/* ---------- UI แสดงผลแปลไว ---------- */
+async function translate(text,extraTag){
+  ctl&&ctl.abort();ctl=new AbortController();
+  panel.innerHTML='<p class="hint"><span class="spin"></span>กำลังแปล…</p>';
+  try{
+    const r=await fastTranslate(text);
+    lastResult=r;
+    lastSpoken=text;
+    lastAudioUrl=r.audioUrl||'';
+    const isSaved=vocabList.some(v=>v.text.toLowerCase()===text.toLowerCase());
+    panel.innerHTML=`<div class="card">
+      <div class="badge">⚡ ${esc(extraTag||r.source)}</div>
+      <div class="hd"><div class="src">${esc(text)}</div>${audioBtns(text,r.audioUrl||'')}</div>
+      ${r.phonetic?`<div class="rd">${esc(r.phonetic)}</div>`:''}
+      <div class="tr">${esc(r.meaning)}</div>
+      ${r.posList.length?`<div class="note">${r.posList.map(p=>`<div>${esc(p)}</div>`).join('')}</div>`:''}
+      ${r.examples.map(x=>`<div class="ex"><div><p>${esc(x.en)}</p></div>${audioBtns(x.en)}</div>`).join('')}
+      <div class="sub-actions">
+        <button class="btn sm ${isSaved?'on':''}" id="saveVocabBtn">${isSaved?'✓ บันทึกแล้ว':'+ บันทึกศัพท์'}</button>
+        <button class="btn sm" data-deep="${esc(text)}">✨ อธิบายละเอียด (AI)</button>
+      </div>
+    </div>`;
+  }catch(e){fail(e)}
+}
+
+async function deepExplain(text){
+  if(!store.get('gkey')){msg('ใส่ Gemini API key ที่ปุ่มตั้งค่าก่อนใช้ฟีเจอร์อธิบายเชิงลึก','err');openSet();return}
+  ctl&&ctl.abort();ctl=new AbortController();
+  panel.innerHTML='<p class="hint"><span class="spin"></span>Gemini กำลังวิเคราะห์โครงสร้างและตัวอย่าง…</p>';
+  const toEn=TH.test(text);
+  const prompt=`You are an English tutor for Thai learners. Text: """${text}"""
+Return ONLY a JSON object: {"text":"the text","reading":"${toEn?'':'IPA in slashes plus a Thai-script pronunciation hint in parentheses'}","pos":"part of speech in Thai for single words, else empty","meaning":"${toEn?'English translation':'Thai translation'}","examples":[{"en":"English example sentence","th":"Thai translation"},{"en":"","th":""}],"note":"clear Thai explanation on grammar structure, nuance, or TOEIC/exam tips"}
+Give 2 examples for a word or phrase and 1 for a sentence.`;
+  try{
+    const r=await gjson(prompt,{signal:ctl.signal});
+    lastResult={
+      text,
+      phonetic:r.reading||'',
+      meaning:r.meaning||'',
+      examples:r.examples||[],
+      note:r.note||''
+    };
+    const isSaved=vocabList.some(v=>v.text.toLowerCase()===text.toLowerCase());
+    panel.innerHTML=`<div class="card">
+      <div class="badge">✨ Gemini Tutor</div>
+      <div class="hd"><div class="src">${esc(text)}</div>${audioBtns(text)}</div>
+      <div class="rd">${esc(r.reading||'')} ${r.pos?'· '+esc(r.pos):''}</div>
+      <div class="tr">${esc(r.meaning)}</div>
+      ${(r.examples||[]).filter(x=>x&&x.en).map(x=>`<div class="ex"><div><p>${esc(x.en)}</p><p class="th">${esc(x.th)}</p></div>${audioBtns(x.en)}</div>`).join('')}
+      ${r.note?`<div class="note">${esc(r.note)}</div>`:''}
+      <div class="sub-actions">
+        <button class="btn sm ${isSaved?'on':''}" id="saveVocabBtn">${isSaved?'✓ บันทึกแล้ว':'+ บันทึกศัพท์'}</button>
+      </div>
+    </div>`;
+  }catch(e){fail(e)}
+}
+
+/* ---------- Text Selection Handler (รองรับทั้ง Mouse, Touch และ iPadOS selectionchange) ---------- */
+let selTimer=null;
+function checkSelectionNow(){
+  if(cropMode)return;
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0)return;
+  // ตรวจว่าข้อความที่เลือกอยู่ในพื้นที่ #reader ไม่ใช่ในแถบเมนูหรือแผงแปล
+  const anchor=sel.anchorNode;
+  if(!anchor||!reader.contains(anchor))return;
+  const t=String(sel).replace(/\s+/g,' ').trim();
+  if(t&&t.length<=800&&t!==last){
+    last=t;
+    translate(t);
+  }
+}
+
+function scheduleSelCheck(delay=80){
+  if(cropMode)return;
+  clearTimeout(selTimer);
+  selTimer=setTimeout(checkSelectionNow,delay);
+}
+
+reader.addEventListener('mouseup',()=>scheduleSelCheck(20));
+reader.addEventListener('touchend',()=>scheduleSelCheck(120));
+// iPadOS Safari ใช้ตัวเลื่อน Selection Handle สีฟ้า ซึ่งจะยิง event selectionchange ตอนลากปรับขอบ
+document.addEventListener('selectionchange',()=>{
+  if(!cropMode)scheduleSelCheck(450);
+});
+
+/* ---------- Navigation, Zoom, Rotation & Auto-Bookmark State ---------- */
+let docState={
+  type:null, // 'pdf' | 'image' | 'text'
+  fileKey:'',
+  zoom:1.0,
+  rotation:0,
+  totalPages:1,
+  currentPage:1,
+  pdfDoc:null,
+  pagesMeta:[],
+  imgObj:null
+};
+
+const navBar=$('#navBar'),pgIn=$('#pgIn'),pgTot=$('#pgTot'),zoomLbl=$('#zoomLbl'),bmNote=$('#bmNote');
+
+function updateNavUI(){
+  if(!docState.type){navBar.classList.remove('show');return}
+  navBar.classList.add('show');
+  const isPdf=docState.type==='pdf';
+  const isImg=docState.type==='image';
+  $('#pageCtrl').style.display=isPdf?'inline-flex':'none';
+  $('#navSep1').style.display=isPdf?'inline-block':'none';
+  $('#rotCtrl').style.display=(isPdf||isImg)?'inline-flex':'none';
+  $('#navSep2').style.display=(isPdf||isImg)?'inline-block':'none';
+  pgIn.max=docState.totalPages;
+  pgIn.value=docState.currentPage;
+  pgTot.textContent=`/ ${docState.totalPages}`;
+  zoomLbl.textContent=`${Math.round(docState.zoom*100)}%`;
+}
+
+function saveBookmark(){
+  if(!docState.fileKey||docState.type!=='pdf')return;
+  const bms=store.json('readlens_bookmarks',{});
+  bms[docState.fileKey]={page:docState.currentPage,zoom:docState.zoom,rot:docState.rotation,ts:Date.now()};
+  store.set('readlens_bookmarks',JSON.stringify(bms));
+}
+
+function jumpToPage(num){
+  if(docState.type!=='pdf'||!docState.pagesMeta.length)return;
+  const target=Math.max(1,Math.min(docState.totalPages,Number(num)||1));
+  docState.currentPage=target;
+  pgIn.value=target;
+  const item=docState.pagesMeta[target-1];
+  if(item&&item.pg){
+    item.pg.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  saveBookmark();
+}
+
+$('#prevPg').onclick=()=>jumpToPage(docState.currentPage-1);
+$('#nextPg').onclick=()=>jumpToPage(docState.currentPage+1);
+pgIn.onchange=()=>jumpToPage(pgIn.value);
+pgIn.onkeydown=e=>{if(e.key==='Enter')jumpToPage(pgIn.value)};
+
+function applyZoomAndRotate(newZoom,newRot){
+  docState.zoom=Math.max(0.5,Math.min(2.5,Number(newZoom.toFixed(2))));
+  docState.rotation=((newRot%360)+360)%360;
+  updateNavUI();
+  saveBookmark();
+  if(docState.type==='pdf'){
+    rebuildPdfLayout();
+  }else if(docState.type==='image'){
+    renderImageStage();
+  }else if(docState.type==='text'){
+    const d=stage.querySelector('.doc');
+    if(d)d.style.zoom=docState.zoom;
+  }
+}
+
+$('#zoomIn').onclick=()=>applyZoomAndRotate(docState.zoom+0.15,docState.rotation);
+$('#zoomOut').onclick=()=>applyZoomAndRotate(docState.zoom-0.15,docState.rotation);
+$('#zoomFit').onclick=()=>applyZoomAndRotate(1.0,docState.rotation);
+$('#rotBtn').onclick=()=>applyZoomAndRotate(docState.zoom,docState.rotation+90);
+
+/* ---------- Open Documents (Lazy-render PDF + Memory Recycling on iPadOS) ---------- */
+function reset(){
+  token++;
+  stage.querySelectorAll('.pg canvas').forEach(c=>{c.width=0;c.height=0});
+  stage.querySelectorAll('.pg,.doc,.empty').forEach(n=>n.remove());
+  last='';
+  bmNote.textContent='';
+}
+
+function showDoc(paras){
+  reset();
+  docState={type:'text',fileKey:'',zoom:1.0,rotation:0,totalPages:1,currentPage:1,pdfDoc:null,pagesMeta:[],imgObj:null};
+  updateNavUI();
+  const d=document.createElement('div');d.className='doc';
+  d.innerHTML=paras.map(p=>`<p>${esc(p)}</p>`).join('');stage.prepend(d);
+}
+
+let pdfIo=null;
+function rebuildPdfLayout(){
+  if(!docState.pdfDoc)return;
+  if(pdfIo)pdfIo.disconnect();
+  const keepPage=docState.currentPage;
+  token++;
+  const my=token;
+  stage.querySelectorAll('.pg canvas').forEach(c=>{c.width=0;c.height=0});
+  stage.querySelectorAll('.pg').forEach(n=>n.remove());
+
+  const pdf=docState.pdfDoc;
+  const baseMaxW=Math.max(280,reader.clientWidth-36);
+  const targetW=baseMaxW*docState.zoom;
+
+  const pagesMeta=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const pg=document.createElement('div');
+    pg.className='pg';
+    pg.dataset.page=i;
+    pg.style.width=Math.min(760*docState.zoom,targetW)+'px';
+    pg.style.height=Math.round(980*docState.zoom)+'px';
+    stage.insertBefore(pg,box);
+    pagesMeta.push({num:i,pg,rendered:false});
+  }
+  docState.pagesMeta=pagesMeta;
+
+  // ปล่อยหน่วยความจำ Canvas ของหน้าที่อยู่ห่างจากหน้าปัจจุบันมาก เพื่อป้องกัน iPadOS Safari รีโหลดหน้า
+  const recycleDistantPages=(centerIdx)=>{
+    if(!isIOS)return;
+    const keepRadius=6;
+    for(let i=0;i<pagesMeta.length;i++){
+      if(pagesMeta[i].rendered && Math.abs(i-centerIdx)>keepRadius){
+        const oldC=pagesMeta[i].pg.querySelector('canvas');
+        if(oldC){oldC.width=0;oldC.height=0;}
+        pagesMeta[i].pg.innerHTML='';
+        pagesMeta[i].rendered=false;
+      }
+    }
+  };
+
+  const renderPage=async(item)=>{
+    if(item.rendered||my!==token)return;
+    item.rendered=true;
+    const page=await pdf.getPage(item.num);
+    if(my!==token)return;
+    const v0=page.getViewport({scale:1,rotation:docState.rotation});
+    const fitScale=Math.min(2.2,baseMaxW/v0.width)*docState.zoom;
+    const vp=page.getViewport({scale:fitScale,rotation:docState.rotation});
+    const dpr=maxSafeDpr;
+    const pg=item.pg;
+    pg.style.width=vp.width+'px';
+    pg.style.height=vp.height+'px';
+    const c=document.createElement('canvas');
+    c.width=Math.round(vp.width*dpr);c.height=Math.round(vp.height*dpr);
+    c.style.width=vp.width+'px';c.style.height=vp.height+'px';
+    const tl=document.createElement('div');tl.className='textLayer';
+    pg.innerHTML='';
+    pg.append(c,tl);
+
+    await page.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[dpr,0,0,dpr,0,0]}).promise;
+    if(my!==token)return;
+
+    const tc=await page.getTextContent();
+    const hasText=(tc.items||[]).some(x=>x.str&&x.str.trim().length>0);
+    if(hasText){
+      pdfjsLib.renderTextLayer({textContent:tc,container:tl,viewport:vp,textDivs:[]});
+    }else if(isAutoOcr()){
+      schedulePageOcr(pg,c,tl,my);
+    }
+  };
+
+  pdfIo=new IntersectionObserver(entries=>{
+    if(my!==token){pdfIo.disconnect();return}
+    let topVisible=null;
+    for(const ent of entries){
+      if(ent.isIntersecting){
+        const idx=pagesMeta.findIndex(x=>x.pg===ent.target);
+        if(idx>=0){
+          renderPage(pagesMeta[idx]);
+          if(pagesMeta[idx+1])renderPage(pagesMeta[idx+1]);
+          if(topVisible===null||idx+1<topVisible)topVisible=idx+1;
+        }
+      }
+    }
+    if(topVisible!==null){
+      docState.currentPage=topVisible;
+      pgIn.value=topVisible;
+      saveBookmark();
+      recycleDistantPages(topVisible-1);
+    }
+  },{root:reader,rootMargin:'350px 0px',threshold:0.05});
+
+  pagesMeta.forEach(m=>pdfIo.observe(m.pg));
+
+  if(keepPage>1){
+    requestAnimationFrame(()=>{
+      const targetItem=pagesMeta[keepPage-1];
+      if(targetItem)targetItem.pg.scrollIntoView({block:'start'});
+    });
+  }
+}
+
+async function openPdf(file){
+  reset();
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const fKey=`${file.name}_${file.size}`;
+  const bms=store.json('readlens_bookmarks',{});
+  const saved=bms[fKey];
+
+  docState={
+    type:'pdf',
+    fileKey:fKey,
+    zoom:saved?saved.zoom:1.0,
+    rotation:saved?saved.rot:0,
+    totalPages:pdf.numPages,
+    currentPage:saved?Math.min(pdf.numPages,saved.page):1,
+    pdfDoc:pdf,
+    pagesMeta:[],
+    imgObj:null
+  };
+  updateNavUI();
+  if(saved && saved.page>1){
+    bmNote.textContent=`📌 กู้คืนตำแหน่งเดิม: หน้า ${saved.page}`;
+  }
+  rebuildPdfLayout();
+}
+
+function renderImageStage(){
+  const img=docState.imgObj;
+  if(!img)return;
+  token++;
+  const my=token;
+  stage.querySelectorAll('.pg canvas').forEach(c=>{c.width=0;c.height=0});
+  stage.querySelectorAll('.pg').forEach(n=>n.remove());
+  const rot=docState.rotation;
+  const swapped=(rot===90||rot===270);
+  const natW=swapped?img.height:img.width;
+  const natH=swapped?img.width:img.height;
+  const baseMaxW=Math.max(280,reader.clientWidth-36);
+  const w=Math.min(natW,baseMaxW)*docState.zoom;
+  const h=natH*w/natW;
+  const dpr=maxSafeDpr;
+
+  const pg=document.createElement('div');pg.className='pg';pg.style.width=w+'px';pg.style.height=h+'px';
+  const c=document.createElement('canvas');c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.width=w+'px';c.style.height=h+'px';
+  const ctx=c.getContext('2d');
+  ctx.save();
+  ctx.translate(c.width/2,c.height/2);
+  ctx.rotate(rot*Math.PI/180);
+  const drawW=swapped?c.height:c.width;
+  const drawH=swapped?c.width:c.height;
+  ctx.drawImage(img,-drawW/2,-drawH/2,drawW,drawH);
+  ctx.restore();
+
+  const tl=document.createElement('div');tl.className='textLayer';
+  pg.append(c,tl);stage.insertBefore(pg,box);
+  if(isAutoOcr())schedulePageOcr(pg,c,tl,my);
+}
+
+function openImage(file){
+  reset();
+  const img=new Image();
+  img.onload=()=>{
+    docState={type:'image',fileKey:'',zoom:1.0,rotation:0,totalPages:1,currentPage:1,pdfDoc:null,pagesMeta:[],imgObj:img};
+    updateNavUI();
+    renderImageStage();
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+async function openFile(file){
+  if(!file)return;
+  stopSpeech();
+  msg('<span class="spin"></span>กำลังเปิดไฟล์…');
+  try{
+    const n=file.name.toLowerCase();
+    if(file.type==='application/pdf'||n.endsWith('.pdf')){
+      if(!window.pdfjsLib)throw new Error('pdf');
+      await openPdf(file);
+    }else if(file.type.startsWith('image/'))openImage(file);
+    else if(n.endsWith('.html')||n.endsWith('.htm')){
+      const d=new DOMParser().parseFromString(await file.text(),'text/html');
+      d.querySelectorAll('script,style,nav,footer').forEach(x=>x.remove());
+      let p=[...d.querySelectorAll('h1,h2,h3,p,li')].map(x=>x.textContent.trim()).filter(Boolean);
+      if(!p.length)p=d.body.textContent.split(/\n{2,}/).map(x=>x.trim()).filter(Boolean);
+      showDoc(p);
+    }else showDoc((await file.text()).split(/\n+/).map(x=>x.trim()).filter(Boolean));
+    msg('แตะลากคลุมคำหรือประโยคในเอกสาร ผลแปลจะแสดงทันทีที่นี่','hint');
+  }catch(e){msg('เปิดไฟล์ไม่ได้ ลองไฟล์อื่นหรือใช้ปุ่มวางข้อความ','err')}
+}
+$('#f').addEventListener('change',e=>{openFile(e.target.files[0]);e.target.value=''});
+reader.addEventListener('dragover',e=>e.preventDefault());
+reader.addEventListener('drop',e=>{e.preventDefault();openFile(e.dataTransfer.files[0])});
+$('#pasteBtn').onclick=()=>$('#dlg').showModal();
+$('#dx').onclick=()=>$('#dlg').close();
+$('#dok').onclick=()=>{
+  const p=$('#ta').value.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  if(p.length)showDoc(p);$('#dlg').close();
+};
+window.addEventListener('load',()=>{
+  const miss=[];
+  if(!window.pdfjsLib)miss.push('PDF');
+  if(!window.Tesseract)miss.push('OCR');
+  if(location.protocol==='file:'||miss.length){
+    const m=location.protocol==='file:'
+      ?'⚠ ไฟล์นี้ถูกเปิดจากแอปไฟล์ (file://) ซึ่ง Safari บน iPad ไม่รองรับสคริปต์ต่างโดเมน (แปล/OCR/PDF) — โปรดเปิดผ่านลิงก์ https:// (เช่น Netlify Drop / GitHub Pages)'
+      :'⚠ โหลดไลบรารี '+miss.join(', ')+' ไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วรีเฟรช';
+    const b=document.createElement('div');
+    b.style.cssText='background:#C0392B;color:#fff;padding:8px 14px;font-size:13px;flex-shrink:0';
+    b.textContent=m;document.body.insertBefore(b,document.body.firstChild);
+  }
+});
+$('#demoBtn').onclick=()=>showDoc([
+ 'The city council has decided to postpone the construction of the new library until next spring, as the budget was insufficient to cover unexpected costs.',
+ 'Residents who had been looking forward to the opening expressed mixed feelings, though most agreed that careful planning is better than a rushed result.',
+ 'Exercise 1. Choose the correct word to complete the sentence.',
+ '1) If I ___ more time yesterday, I would have finished the report.   (A) have  (B) had  (C) had had  (D) would have',
+ '2) She is interested ___ learning Japanese.   (A) on  (B) at  (C) in  (D) for'
+]);
+
+/* ---------- Crop Modes: รองรับทั้ง Mouse, Finger Touch และ Apple Pencil บน iPadOS ---------- */
+const cropBtn=$('#cropBtn'),cropTrBtn=$('#cropTrBtn');
+let cropMode=null,st=null,activePointerId=null;
+
+function setCropMode(mode){
+  cropMode=(cropMode===mode)?null:mode;
+  document.body.classList.toggle('crop',Boolean(cropMode));
+  cropTrBtn.classList.toggle('on',cropMode==='ocr');
+  cropTrBtn.setAttribute('aria-pressed',cropMode==='ocr');
+  cropBtn.classList.toggle('on',cropMode==='ai');
+  cropBtn.setAttribute('aria-pressed',cropMode==='ai');
+  if(cropMode){
+    try{window.getSelection().removeAllRanges();}catch(e){}
+    msg(cropMode==='ocr'
+      ?'ใช้นิ้วหรือ Apple Pencil ลากกรอบรอบคำ/ประโยค ระบบจะอ่าน OCR และแปลฟรีทันที'
+      :'ใช้นิ้วหรือ Apple Pencil ลากกรอบรอบโจทย์ แล้วปล่อยเพื่อให้ Gemini เฉลยละเอียด');
+  }else{
+    st=null;activePointerId=null;box.hidden=true;
+  }
+}
+cropTrBtn.onclick=()=>setCropMode('ocr');
+cropBtn.onclick=()=>setCropMode('ai');
+
+function rectOf(cx,cy){
+  return{
+    x:Math.min(st.x,cx),
+    y:Math.min(st.y,cy),
+    w:Math.abs(cx-st.x),
+    h:Math.abs(cy-st.y)
+  };
+}
+function drawBox(cx,cy){
+  const b=stage.getBoundingClientRect(),r=rectOf(cx,cy);
+  box.style.left=(r.x-b.left)+'px';
+  box.style.top=(r.y-b.top)+'px';
+  box.style.width=r.w+'px';
+  box.style.height=r.h+'px';
+}
+
+// ป้องกัน Safari iOS แย่ง gesture ไปเลื่อนหน้าจอระหว่างลากกรอบครอปด้วยนิ้วหรือ Apple Pencil
+reader.addEventListener('touchmove',e=>{
+  if(cropMode&&st)e.preventDefault();
+},{passive:false});
+
+stage.addEventListener('pointerdown',e=>{
+  if(!cropMode)return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  e.preventDefault();
+  activePointerId=e.pointerId;
+  try{stage.setPointerCapture(e.pointerId);}catch(err){}
+  st={x:e.clientX,y:e.clientY};
+  box.hidden=false;
+  drawBox(e.clientX,e.clientY);
+});
+
+stage.addEventListener('pointermove',e=>{
+  if(!st||e.pointerId!==activePointerId)return;
+  e.preventDefault();
+  drawBox(e.clientX,e.clientY);
+});
+
+async function finishCrop(e){
+  if(!st||(e.pointerId!=null&&e.pointerId!==activePointerId))return;
+  const r=rectOf(e.clientX,e.clientY);
+  st=null;activePointerId=null;
+  if(r.w<12||r.h<12){box.hidden=true;return}
+  const mode=cropMode;
+  if(!isStickyCrop())setCropMode(null);
+  msg('<span class="spin"></span>กำลังอ่านภาพ…');
+  try{
+    const blob=await capture(r);
+    box.hidden=true;
+    if(mode==='ocr')ocrAndTranslate(blob);
+    else analyze(blob);
+  }catch(err){box.hidden=true;msg('ครอปภาพไม่สำเร็จ ลองครอปใหม่อีกครั้ง','err')}
+}
+
+stage.addEventListener('pointerup',finishCrop);
+stage.addEventListener('pointercancel',()=>{st=null;activePointerId=null;box.hidden=true});
+
+async function capture(r){
+  const f=isIOS?2.0:2.5;
+  const out=document.createElement('canvas');out.width=Math.round(r.w*f);out.height=Math.round(r.h*f);
+  const g=out.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,out.width,out.height);
+  const cs=[...stage.querySelectorAll('canvas')];
+  if(cs.length){
+    for(const c of cs){
+      if(!c.width||!c.height)continue;
+      const b=c.getBoundingClientRect();
+      const x0=Math.max(r.x,b.left),y0=Math.max(r.y,b.top),x1=Math.min(r.x+r.w,b.right),y1=Math.min(r.y+r.h,b.bottom);
+      if(x1<=x0||y1<=y0)continue;
+      const k=c.width/b.width;
+      g.drawImage(c,(x0-b.left)*k,(y0-b.top)*k,(x1-x0)*k,(y1-y0)*k,(x0-r.x)*f,(y0-r.y)*f,(x1-x0)*f,(y1-y0)*f);
+    }
+  }else{
+    const d=stage.querySelector('.doc');if(!d)throw new Error('none');
+    const full=await html2canvas(d,{scale:f,backgroundColor:'#fff'}),b=d.getBoundingClientRect();
+    g.drawImage(full,(r.x-b.left)*f,(r.y-b.top)*f,r.w*f,r.h*f,0,0,out.width,out.height);
+  }
+  return new Promise((ok,no)=>out.toBlob(b=>b?ok(b):no(),'image/png'));
+}
+
+async function ocrAndTranslate(blob){
+  ctl&&ctl.abort();ctl=new AbortController();
+  panel.innerHTML='<p class="hint"><span class="spin"></span>กำลังแปลงภาพเป็นข้อความ (OCR)…</p>';
+  try{
+    const imgUrl=URL.createObjectURL(blob);
+    const tmpImg=new Image();
+    await new Promise((res,rej)=>{tmpImg.onload=res;tmpImg.onerror=rej;tmpImg.src=imgUrl});
+    const tmpC=document.createElement('canvas');
+    tmpC.width=tmpImg.width;tmpC.height=tmpImg.height;
+    tmpC.getContext('2d').drawImage(tmpImg,0,0);
+    URL.revokeObjectURL(imgUrl);
+
+    const procC=preprocessCanvasForOcr(tmpC);
+    const worker=await getOcrWorker();
+    const {data}=await worker.recognize(procC);
+    tmpC.width=0;tmpC.height=0;procC.width=0;procC.height=0;
+
+    const cleaned=(data.text||'').replace(/\s+/g,' ').trim();
+    if(!cleaned){
+      msg('ไม่พบข้อความภาษาอังกฤษในกรอบที่เลือก ลองลากกรอบให้กว้างขึ้น','err');
+      return;
+    }
+    last=cleaned;
+    await translate(cleaned,'OCR + Google Translate');
+  }catch(e){
+    msg('ระบบ OCR อ่านข้อความไม่สำเร็จ ลองใหม่อีกครั้ง','err');
+  }
+}
+
+async function analyze(blob){
+  if(!store.get('gkey')){msg('ใส่ Gemini API key ที่ปุ่มตั้งค่าก่อนใช้ฟีเจอร์เฉลยโจทย์','err');openSet();return}
+  ctl&&ctl.abort();ctl=new AbortController();
+  const url=URL.createObjectURL(blob);
+  panel.innerHTML=`<img class="shot" src="${url}" alt="โจทย์ที่ครอป"><p class="hint"><span class="spin"></span>AI กำลังวิเคราะห์โจทย์…</p>`;
+  try{
+    const r=await gjson(`The image shows English exercise question(s) for a Thai learner. Solve every question visible. Return ONLY JSON: {"items":[{"q":"question number or a very short version of the question","answer":"the correct answer, as the full word/phrase and its choice letter if any","why":"explanation in Thai, 1-3 sentences, mentioning the grammar rule or meaning"}],"unreadable":false}. If the image has no readable exercise set "unreadable":true and items [].`,{images:[blob],signal:ctl.signal});
+    const items=r.items||[];
+    panel.innerHTML=`<img class="shot" src="${url}" alt="โจทย์ที่ครอป">`+(r.unreadable||!items.length?'<p class="err">อ่านโจทย์ในกรอบไม่ออก ลองครอปให้กว้างและชัดขึ้น</p>':
+      items.map(i=>`<div class="card"><div class="hd"><div><div class="hint">${esc(i.q)}</div><div class="ans">${esc(i.answer)}</div></div>${audioBtns(String(i.answer).replace(/^\(?[A-Da-d][).]\s*/,''))}</div><div class="note">${esc(i.why)}</div></div>`).join(''));
+  }catch(e){fail(e)}
+}
+
+/* ---------- Keyboard Shortcuts (รองรับ Magic Keyboard / Smart Keyboard บน iPad) ---------- */
+document.addEventListener('keydown',e=>{
+  const tag=(e.target&&e.target.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA'||e.target.isContentEditable)return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+
+  if(e.key==='Escape'){
+    stopSpeech();
+    if(cropMode)setCropMode(null);
+  }else if(e.key==='c'||e.key==='C'){
+    e.preventDefault();
+    setCropMode('ocr');
+  }else if(e.key==='v'||e.key==='V'){
+    e.preventDefault();
+    setCropMode('ai');
+  }else if(e.key==='r'||e.key==='R'){
+    if(lastSpoken){
+      e.preventDefault();
+      say(lastSpoken,lastAudioUrl);
+    }
+  }
+});
+</script>
+</body>
+</html>
